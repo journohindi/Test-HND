@@ -41,14 +41,66 @@
     <div class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         <div class="flex space-x-8 border-b border-slate-800 mb-8 overflow-x-auto">
-            <button onclick="switchTab('single-video')" id="btn-single-video" class="tab-btn active pb-4 text-sm font-semibold tracking-wide whitespace-nowrap transition-colors">SINGLE VIDEO AUDIT</button>
-            <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn pb-4 text-sm font-semibold text-slate-500 hover:text-slate-300 tracking-wide whitespace-nowrap transition-colors">MACRO DASHBOARD</button>
+            <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn active pb-4 text-sm font-semibold tracking-wide whitespace-nowrap transition-colors">MACRO DASHBOARD</button>
+            <button onclick="switchTab('single-video')" id="btn-single-video" class="tab-btn pb-4 text-sm font-semibold text-slate-500 hover:text-slate-300 tracking-wide whitespace-nowrap transition-colors">SINGLE VIDEO AUDIT</button>
             <button onclick="switchTab('top10')" id="btn-top10" class="tab-btn pb-4 text-sm font-semibold text-slate-500 hover:text-slate-300 tracking-wide whitespace-nowrap transition-colors">TOP 10 PERFORMERS</button>
             <button onclick="switchTab('worst10')" id="btn-worst10" class="tab-btn pb-4 text-sm font-semibold text-slate-500 hover:text-slate-300 tracking-wide whitespace-nowrap transition-colors">BOTTOM 10 (DEAD WEIGHT)</button>
         </div>
 
-        <div id="single-video" class="tab-content active">
-            
+        <div id="dashboard" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="bg-cardbg p-5 rounded-lg border border-slate-700/50 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 h-full w-1 bg-blue-500"></div>
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Total Views</div>
+                    <div id="dash-views" class="text-3xl font-black text-white">--</div>
+                </div>
+                <div class="bg-cardbg p-5 rounded-lg border border-slate-700/50 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 h-full w-1 bg-purple-500"></div>
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Total Watch Time</div>
+                    <div id="dash-wt" class="text-3xl font-black text-white">--</div>
+                </div>
+                <div class="bg-cardbg p-5 rounded-lg border border-slate-700/50 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 h-full w-1 bg-emerald-500"></div>
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Global CTR</div>
+                    <div id="dash-ctr" class="text-3xl font-black text-white">--</div>
+                </div>
+                <div class="bg-cardbg p-5 rounded-lg border border-slate-700/50 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 h-full w-1 bg-orange-500"></div>
+                    <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Total Uploads</div>
+                    <div id="dash-uploads" class="text-3xl font-black text-white">--</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-cardbg p-6 rounded-lg border border-slate-700/50">
+                    <h3 class="text-white font-bold mb-4">Format Efficiency Breakdown</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-slate-700">
+                                    <th class="pb-2 font-medium">Format</th>
+                                    <th class="pb-2 font-medium">Volume</th>
+                                    <th class="pb-2 font-medium">Avg Views</th>
+                                    <th class="pb-2 font-medium">Avg CTR</th>
+                                    <th class="pb-2 font-medium">Avg APV</th>
+                                </tr>
+                            </thead>
+                            <tbody id="format-table-body" class="divide-y divide-slate-800">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="bg-cardbg p-6 rounded-lg border border-slate-700/50">
+                    <h3 class="text-white font-bold mb-4">View Distribution (Long vs Short)</h3>
+                    <div class="h-48 w-full">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="single-video" class="tab-content">
             <div class="mb-6 bg-cardbg p-4 rounded-lg border border-slate-700/50 shadow-md flex items-center gap-4">
                 <label for="videoSelect" class="text-sm font-bold text-slate-400 whitespace-nowrap">Select Video to Audit:</label>
                 <select id="videoSelect" onchange="updateAuditDisplay()" disabled class="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded focus:ring-blue-500 focus:border-blue-500 block p-2.5 opacity-50 cursor-not-allowed">
@@ -61,6 +113,7 @@
                     <div class="text-blue-500 font-bold text-xs tracking-widest uppercase mb-2">Automated Data Evaluation</div>
                     <h2 id="audit-title" class="text-2xl font-bold text-white max-w-2xl leading-snug">Awaiting CSV Fetch...</h2>
                     <div class="flex gap-4 mt-4">
+                        <span id="audit-format" class="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-300">Format: --</span>
                         <span id="audit-duration" class="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-300">Duration: --</span>
                         <span id="audit-issue" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-full text-xs font-medium hidden">Status: --</span>
                     </div>
@@ -87,13 +140,11 @@
 
                 <div class="p-8">
                     <h3 class="text-white font-bold text-lg mb-4 flex items-center gap-2">Diagnostic Breakdown</h3>
-                    
                     <div class="space-y-6">
                         <div class="bg-panelbg border border-slate-700/50 rounded p-5 border-l-4 border-l-blue-500">
                             <h4 class="text-white font-semibold text-sm mb-2">Packaging Evaluation (CTR vs Impressions)</h4>
                             <p id="audit-setup" class="text-slate-400 text-sm leading-relaxed">--</p>
                         </div>
-                        
                         <div class="bg-panelbg border border-slate-700/50 rounded p-5 border-l-4 border-l-red-500">
                             <h4 class="text-white font-semibold text-sm mb-2">Content Retention (APV Analysis)</h4>
                             <p id="audit-execution" class="text-slate-400 text-sm leading-relaxed">--</p>
@@ -103,13 +154,58 @@
             </div>
         </div>
 
-        <div id="dashboard" class="tab-content"><div class="p-6 bg-cardbg rounded border border-slate-700"><p class="text-slate-400">Dashboard UI remains unchanged from previous version.</p></div></div>
-        <div id="top10" class="tab-content"><div class="p-6 bg-cardbg rounded border border-slate-700"><p class="text-slate-400">Top 10 UI remains unchanged from previous version.</p></div></div>
-        <div id="worst10" class="tab-content"><div class="p-6 bg-cardbg rounded border border-slate-700"><p class="text-slate-400">Bottom 10 UI remains unchanged from previous version.</p></div></div>
+        <div id="top10" class="tab-content">
+            <div class="bg-cardbg border border-slate-700/50 rounded-lg overflow-hidden">
+                <div class="p-5 bg-panelbg border-b border-slate-800">
+                    <h2 class="text-lg font-bold text-white">Top 10 Highest Yield Assets</h2>
+                    <p class="text-xs text-slate-400 mt-1">Scale this specific architecture. Do not deviate.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-900">
+                            <tr class="text-slate-500">
+                                <th class="px-6 py-4 font-medium">Rank</th>
+                                <th class="px-6 py-4 font-medium">Format</th>
+                                <th class="px-6 py-4 font-medium">Video Title</th>
+                                <th class="px-6 py-4 font-medium">Views</th>
+                                <th class="px-6 py-4 font-medium">CTR</th>
+                                <th class="px-6 py-4 font-medium">APV</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top10-body" class="divide-y divide-slate-800">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="worst10" class="tab-content">
+            <div class="bg-red-900/10 border border-red-900/30 rounded-lg overflow-hidden">
+                <div class="p-5 bg-red-900/20 border-b border-red-900/40">
+                    <h2 class="text-lg font-bold text-red-400">Bottom 10 Channel Drags</h2>
+                    <p class="text-xs text-red-300 mt-1">Lowest view count items dragging down channel authority. Unlist or delete.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-red-950/50">
+                            <tr class="text-red-300/70">
+                                <th class="px-6 py-4 font-medium">Format</th>
+                                <th class="px-6 py-4 font-medium">Video Title</th>
+                                <th class="px-6 py-4 font-medium">Views</th>
+                                <th class="px-6 py-4 font-medium">CTR</th>
+                            </tr>
+                        </thead>
+                        <tbody id="worst10-body" class="divide-y divide-red-900/20">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
     </div>
 
     <script>
+        // Tab Navigation
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => {
@@ -122,23 +218,26 @@
             activeBtn.classList.remove('text-slate-500');
         }
 
+        // Helper: Parse HH:MM:SS to Seconds
+        function parseDurationToSeconds(durationStr) {
+            if (!durationStr) return 0;
+            const parts = durationStr.toString().split(':').map(Number);
+            if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+            if (parts.length === 2) return parts[0] * 60 + parts[1];
+            return parseFloat(durationStr) || 0;
+        }
+
         // ==========================================
-        // DYNAMIC CSV FETCH & PARSE LOGIC
+        // DYNAMIC CSV FETCH & DASHBOARD GENERATOR
         // ==========================================
         
-        let globalVideoData = {}; // Will hold all parsed videos
+        let globalVideoData = {}; 
+        let globalChart = null;
 
-        // YOU MUST REPLACE THIS URL WITH YOUR ACTUAL RAW GITHUB CSV LINK
-        const CSV_URL = "https://raw.githubusercontent.com/journohindi/Test-HND/refs/heads/main/Table%20data.csv";
+        // Hardcoded URL as requested
+        const CSV_URL = 'https://raw.githubusercontent.com/journohindi/Test-HND/refs/heads/main/Table%20data.csv';
 
         function initializeData() {
-            if (CSV_URL === "https://raw.githubusercontent.com/journohindi/Test-HND/refs/heads/main/Table%20data.csv") {
-                document.getElementById('loading-status').className = "text-xs font-bold text-red-400 bg-red-900/30 px-3 py-1 rounded";
-                document.getElementById('loading-status').innerText = "ERROR: Raw URL Not Provided in Script";
-                document.getElementById('audit-title').innerText = "System Failure: Update CSV_URL line 286";
-                return;
-            }
-
             Papa.parse(CSV_URL, {
                 download: true,
                 header: true,
@@ -147,83 +246,191 @@
                     processCSVData(results.data);
                 },
                 error: function(err) {
-                    document.getElementById('loading-status').innerText = "Fetch Failed. Check GitHub URL or CORS.";
+                    document.getElementById('loading-status').innerText = "Fetch Failed. Check URL.";
+                    document.getElementById('loading-status').className = "text-xs font-bold text-red-400 bg-red-900/30 px-3 py-1 rounded";
                 }
             });
         }
 
         function processCSVData(dataArray) {
+            const validRows = dataArray.filter(row => row['Video title'] && row.Content !== 'Total');
+            
+            // Macro Stats
+            let totalViews = 0, totalWT = 0, totalImp = 0, totalClicks = 0;
+            let longStats = { count: 0, views: 0, imp: 0, clicks: 0, apvSum: 0 };
+            let shortStats = { count: 0, views: 0, imp: 0, clicks: 0, apvSum: 0 };
+
+            validRows.forEach((row, index) => {
+                const views = parseFloat(row.Views) || 0;
+                const imp = parseFloat(row.Impressions) || 0;
+                const ctr = parseFloat(row['Impressions click-through rate (%)']) || 0;
+                const apv = parseFloat(row['Average percentage viewed (%)']) || 0;
+                const wt = parseFloat(row['Watch time (hours)']) || 0;
+                const durSec = parseDurationToSeconds(row.Duration);
+                const isShort = durSec <= 61;
+                const formatLabel = isShort ? 'Short' : 'Long-Form';
+
+                // Aggregate
+                totalViews += views;
+                totalWT += wt;
+                totalImp += imp;
+                totalClicks += (imp * (ctr / 100));
+
+                if (isShort) {
+                    shortStats.count++; shortStats.views += views; shortStats.imp += imp;
+                    shortStats.clicks += (imp * (ctr / 100)); shortStats.apvSum += apv;
+                } else {
+                    longStats.count++; longStats.views += views; longStats.imp += imp;
+                    longStats.clicks += (imp * (ctr / 100)); longStats.apvSum += apv;
+                }
+
+                // AI Diagnostics (Duration-Aware Logic)
+                let setupDiag = "", execDiag = "", isCrit = false, iLabel = "Normal", iColor = "text-slate-300";
+
+                if (imp > 1000 && ctr < 2.0) {
+                    setupDiag = `CRITICAL FAILURE: ${imp.toLocaleString()} impressions but only ${ctr}% CTR. Audience is aggressively rejecting the thumbnail/title packaging.`;
+                    isCrit = true; iLabel = "Dead Packaging"; iColor = "text-red-400 bg-red-900/30 border-red-800/50";
+                } else if (ctr >= 5.0) {
+                    setupDiag = `SUCCESS: Strong ${ctr}% CTR. Metadata architecture successfully baited algorithmic curiosity.`;
+                } else {
+                    setupDiag = `BASELINE: ${ctr}% CTR. Acceptable, but optimize packaging to scale.`;
+                }
+
+                if (isShort) {
+                    // Short form APV logic
+                    if (apv < 70) {
+                        execDiag = `RETENTION COLLAPSE: A Short requires >100% looping APV. Generating only ${apv}% means viewers are swiping away in seconds. Hook is broken.`;
+                        isCrit = true; iLabel = "Hook Failure"; iColor = "text-orange-400 bg-orange-900/30 border-orange-800/50";
+                    } else if (apv >= 90) {
+                        execDiag = `STRONG RETENTION: High APV (${apv}%) proves solid loop mechanics.`;
+                        if(!isCrit) { iLabel = "High Yield"; iColor = "text-emerald-400 bg-emerald-900/30 border-emerald-800/50"; }
+                    } else {
+                        execDiag = `Average Short retention (${apv}%). Push pacing faster to trigger loops.`;
+                    }
+                } else {
+                    // Long form APV logic
+                    if (apv < 25) {
+                        execDiag = `RETENTION COLLAPSE: APV of ${apv}% on long-form content indicates slow pacing or a failure to deliver the thumbnail promise early. Restructure your first 60 seconds.`;
+                        isCrit = true; iLabel = "Hook Failure"; iColor = "text-orange-400 bg-orange-900/30 border-orange-800/50";
+                    } else if (apv > 40) {
+                        execDiag = `STRONG RETENTION: APV of ${apv}% represents massive absolute watch time. Format is highly successful.`;
+                        if(!isCrit) { iLabel = "High Yield"; iColor = "text-emerald-400 bg-emerald-900/30 border-emerald-800/50"; }
+                    } else {
+                        execDiag = `Standard retention (${apv}%). Identify specific drop-offs in Studio graph.`;
+                    }
+                }
+
+                // Save to registry
+                globalVideoData['vid_' + index] = {
+                    title: row['Video title'],
+                    duration: row.Duration || "0:00",
+                    format: formatLabel,
+                    views: views,
+                    imp: imp,
+                    ctrRaw: ctr,
+                    apvRaw: apv,
+                    diagSetup: setupDiag,
+                    diagExec: execDiag,
+                    tagLabel: iLabel,
+                    tagColor: iColor
+                };
+            });
+
+            // 1. Populate Macro Dashboard UI
+            document.getElementById('dash-views').textContent = (totalViews / 1000000).toFixed(2) + 'M';
+            document.getElementById('dash-wt').textContent = (totalWT / 1000).toFixed(1) + 'K hrs';
+            document.getElementById('dash-ctr').textContent = totalImp > 0 ? ((totalClicks / totalImp) * 100).toFixed(2) + '%' : '0%';
+            document.getElementById('dash-uploads').textContent = validRows.length;
+
+            const longAvgViews = longStats.count > 0 ? (longStats.views / longStats.count) : 0;
+            const longAvgCtr = longStats.imp > 0 ? ((longStats.clicks / longStats.imp) * 100) : 0;
+            const longAvgApv = longStats.count > 0 ? (longStats.apvSum / longStats.count) : 0;
+
+            const shortAvgViews = shortStats.count > 0 ? (shortStats.views / shortStats.count) : 0;
+            const shortAvgCtr = shortStats.imp > 0 ? ((shortStats.clicks / shortStats.imp) * 100) : 0;
+            const shortAvgApv = shortStats.count > 0 ? (shortStats.apvSum / shortStats.count) : 0;
+
+            document.getElementById('format-table-body').innerHTML = `
+                <tr>
+                    <td class="py-3 text-blue-400 font-bold">Long-Form</td>
+                    <td class="py-3">${longStats.count}</td>
+                    <td class="py-3 text-white">${Math.round(longAvgViews).toLocaleString()}</td>
+                    <td class="py-3 text-emerald-400">${longAvgCtr.toFixed(2)}%</td>
+                    <td class="py-3">${longAvgApv.toFixed(2)}%</td>
+                </tr>
+                <tr>
+                    <td class="py-3 text-orange-400 font-bold">Shorts</td>
+                    <td class="py-3">${shortStats.count}</td>
+                    <td class="py-3 text-white">${Math.round(shortAvgViews).toLocaleString()}</td>
+                    <td class="py-3 text-red-400">${shortAvgCtr.toFixed(2)}%</td>
+                    <td class="py-3">${shortAvgApv.toFixed(2)}%</td>
+                </tr>
+            `;
+
+            // Chart Render
+            if(globalChart) globalChart.destroy();
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            globalChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Long-Form Views', 'Shorts Views'],
+                    datasets: [{ data: [longStats.views, shortStats.views], backgroundColor: ['#3b82f6', '#f97316'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } } }
+            });
+
+            // 2. Populate Audit Dropdown & Tables
+            const sortedByViews = [...validRows].sort((a, b) => (parseFloat(b.Views)||0) - (parseFloat(a.Views)||0));
             const selectEl = document.getElementById('videoSelect');
             selectEl.innerHTML = '<option value="">Select a video...</option>';
             
-            // Sort by views descending to put best videos at the top of the dropdown
-            dataArray.sort((a, b) => (parseFloat(b.Views) || 0) - (parseFloat(a.Views) || 0));
+            let top10Html = '';
+            let bottom10Html = '';
 
-            dataArray.forEach((row, index) => {
-                if(row.Content === 'Total' || !row['Video title']) return;
-
-                const videoId = 'vid_' + index;
-                const views = parseFloat(row.Views) || 0;
-                const impressions = parseFloat(row.Impressions) || 0;
-                const ctr = parseFloat(row['Impressions click-through rate (%)']) || 0;
-                const apv = parseFloat(row['Average percentage viewed (%)']) || 0;
-                
-                // Auto-generate algorithmic diagnostics based on objective data thresholds
-                let setupDiagnostic = "";
-                let executionDiagnostic = "";
-                let isCritical = false;
-                let issueLabel = "Normal";
-                let issueColor = "text-slate-300";
-
-                if (impressions > 1000 && ctr < 2.0) {
-                    setupDiagnostic = `CRITICAL FAILURE: Generated ${impressions.toLocaleString()} impressions but CTR is only ${ctr}%. The packaging (Thumbnail/Title) is being aggressively rejected by the audience. Stop this format or radically change metadata.`;
-                    isCritical = true;
-                    issueLabel = "Dead Packaging";
-                    issueColor = "text-red-400 bg-red-900/30 border-red-800/50";
-                } else if (ctr > 5.0) {
-                    setupDiagnostic = `SUCCESS: Excellent click-through rate of ${ctr}%. Your metadata structure successfully baited algorithmic curiosity.`;
-                } else {
-                    setupDiagnostic = `Baseline performance. CTR is ${ctr}%. Acceptable, but room for packaging optimization.`;
-                }
-
-                if (ctr > 4.0 && apv < 30) {
-                    executionDiagnostic = `RETENTION COLLAPSE: Despite a strong CTR, APV is only ${apv}%. The video fails to deliver on the thumbnail's promise quickly enough. You are losing the audience in the opening sequence. Re-edit future hooks immediately.`;
-                    isCritical = true;
-                    issueLabel = "Hook Failure / Clickbait";
-                    issueColor = "text-orange-400 bg-orange-900/30 border-orange-800/50";
-                } else if (apv > 60) {
-                    executionDiagnostic = `STRONG RETENTION: APV of ${apv}% indicates highly successful pacing and content delivery. Scale this specific narrative structure.`;
-                    issueLabel = "High Yield Content";
-                    issueColor = "text-emerald-400 bg-emerald-900/30 border-emerald-800/50";
-                } else {
-                    executionDiagnostic = `Mediocre retention (${apv}%). The video sustains some interest but suffers from pacing drag. Audit the retention graph to find specific drop-off points.`;
-                }
-
-                globalVideoData[videoId] = {
-                    title: row['Video title'],
-                    duration: row.Duration || "Unknown",
-                    views: views.toLocaleString(),
-                    impressions: impressions.toLocaleString(),
-                    ctr: ctr.toFixed(2) + "%",
-                    apv: apv.toFixed(2) + "%",
-                    issueTag: issueLabel,
-                    issueColor: issueColor,
-                    setup: setupDiagnostic,
-                    execution: executionDiagnostic,
-                    rawCtr: ctr,
-                    rawApv: apv
-                };
-
-                const option = document.createElement('option');
-                option.value = videoId;
-                option.textContent = `[${views.toLocaleString()} Views] - ${row['Video title'].substring(0, 80)}...`;
-                selectEl.appendChild(option);
+            // Render Top 10
+            sortedByViews.slice(0, 10).forEach((row, i) => {
+                const isShort = parseDurationToSeconds(row.Duration) <= 61;
+                const v = parseFloat(row.Views)||0;
+                top10Html += `
+                    <tr class="hover:bg-slate-800/50">
+                        <td class="px-6 py-4 text-slate-500 font-bold">#${i+1}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 bg-slate-800 rounded text-xs">${isShort?'Short':'Long'}</span></td>
+                        <td class="px-6 py-4 text-white font-medium max-w-[250px] truncate">${row['Video title']}</td>
+                        <td class="px-6 py-4 text-emerald-400 font-bold">${v.toLocaleString()}</td>
+                        <td class="px-6 py-4">${parseFloat(row['Impressions click-through rate (%)']||0).toFixed(2)}%</td>
+                        <td class="px-6 py-4">${parseFloat(row['Average percentage viewed (%)']||0).toFixed(2)}%</td>
+                    </tr>`;
             });
 
-            // Enable UI
+            // Render Bottom 10 (Filter out 0 views if desired, but bottom is bottom)
+            const bottomSorted = [...validRows].filter(r => (parseFloat(r.Views)||0) > 0).sort((a, b) => (parseFloat(a.Views)||0) - (parseFloat(b.Views)||0));
+            bottomSorted.slice(0, 10).forEach(row => {
+                const isShort = parseDurationToSeconds(row.Duration) <= 61;
+                const v = parseFloat(row.Views)||0;
+                bottom10Html += `
+                    <tr class="hover:bg-red-900/10">
+                        <td class="px-6 py-3"><span class="px-2 py-1 bg-red-900/50 text-red-200 text-xs rounded">${isShort?'Short':'Long'}</span></td>
+                        <td class="px-6 py-3 text-slate-300 truncate max-w-[300px]">${row['Video title']}</td>
+                        <td class="px-6 py-3 text-red-400 font-bold">${v.toLocaleString()}</td>
+                        <td class="px-6 py-3 text-red-400">${parseFloat(row['Impressions click-through rate (%)']||0).toFixed(2)}%</td>
+                    </tr>`;
+            });
+
+            document.getElementById('top10-body').innerHTML = top10Html;
+            document.getElementById('worst10-body').innerHTML = bottom10Html;
+
+            // Populate Dropdown Map
+            Object.keys(globalVideoData).forEach(key => {
+                const d = globalVideoData[key];
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = `[${d.views.toLocaleString()} Views] - ${d.title.substring(0, 80)}...`;
+                selectEl.appendChild(opt);
+            });
+
             selectEl.disabled = false;
             selectEl.classList.remove('opacity-50', 'cursor-not-allowed');
-            document.getElementById('loading-status').innerText = "Data Synced: " + Object.keys(globalVideoData).length + " Videos";
+            document.getElementById('loading-status').innerText = "Data Synced!";
             document.getElementById('loading-status').className = "text-xs font-bold text-emerald-400 bg-emerald-900/30 px-3 py-1 rounded";
         }
 
@@ -234,26 +441,30 @@
             const data = globalVideoData[selectedId];
 
             document.getElementById('audit-title').textContent = data.title;
+            document.getElementById('audit-format').textContent = "Format: " + data.format;
             document.getElementById('audit-duration').textContent = "Duration: " + data.duration;
-            document.getElementById('audit-views').textContent = data.views;
-            document.getElementById('audit-impressions').textContent = data.impressions;
-            document.getElementById('audit-ctr').textContent = data.ctr;
-            document.getElementById('audit-apv').textContent = data.apv;
+            document.getElementById('audit-views').textContent = data.views.toLocaleString();
+            document.getElementById('audit-impressions').textContent = data.imp.toLocaleString();
+            document.getElementById('audit-ctr').textContent = data.ctrRaw.toFixed(2) + "%";
+            document.getElementById('audit-apv').textContent = data.apvRaw.toFixed(2) + "%";
 
-            const issueTag = document.getElementById('audit-issue');
-            issueTag.classList.remove('hidden');
-            issueTag.className = `px-3 py-1 border rounded-full text-xs font-medium ${data.issueColor}`;
-            issueTag.textContent = "Status: " + data.issueTag;
+            const tag = document.getElementById('audit-issue');
+            tag.classList.remove('hidden');
+            tag.className = `px-3 py-1 border rounded-full text-xs font-medium ${data.tagColor}`;
+            tag.textContent = "Status: " + data.tagLabel;
 
-            // Conditional Formatting for Stats
-            document.getElementById('audit-ctr-container').className = data.rawCtr < 2.0 ? "p-6 text-center bg-red-900/20" : "p-6 text-center";
-            document.getElementById('audit-apv-container').className = data.rawApv < 30 ? "p-6 text-center bg-red-900/20" : "p-6 text-center bg-slate-800/20";
+            // Format specific color checks
+            const isShort = data.format === 'Short';
+            const poorCtr = data.ctrRaw < 2.0;
+            const poorApv = isShort ? data.apvRaw < 70 : data.apvRaw < 25;
 
-            document.getElementById('audit-setup').textContent = data.setup;
-            document.getElementById('audit-execution').textContent = data.execution;
+            document.getElementById('audit-ctr-container').className = poorCtr ? "p-6 text-center bg-red-900/20" : "p-6 text-center";
+            document.getElementById('audit-apv-container').className = poorApv ? "p-6 text-center bg-red-900/20" : "p-6 text-center bg-slate-800/20";
+
+            document.getElementById('audit-setup').textContent = data.diagSetup;
+            document.getElementById('audit-execution').textContent = data.diagExec;
         }
 
-        // Run fetch on load
         window.onload = initializeData;
 
     </script>
