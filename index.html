@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Channel Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block; }
+        .tab-btn.active { border-bottom: 2px solid #3b82f6; color: #60a5fa; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { darkbg: '#020617', panelbg: '#0f172a', cardbg: '#1e293b', } } }
+        }
+    </script>
+</head>
+<body class="bg-darkbg text-slate-300 font-sans antialiased min-h-screen flex flex-col">
+
+    <nav class="bg-panelbg border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold text-white">YT</div>
+                    <span class="font-bold text-xl text-white tracking-tight">Analytics <span class="text-blue-500">Pro</span></span>
+                </div>
+                <div id="loading-status" class="text-xs font-bold text-orange-400 bg-orange-900/30 px-3 py-1 rounded">Fetching CSV Data...</div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div class="flex space-x-8 border-b border-slate-800 mb-8 overflow-x-auto">
+            <button onclick="switchTab('single-video')" id="btn-single-video" class="tab-btn active pb-4 text-sm font-semibold tracking-wide whitespace-nowrap transition-colors">SINGLE VIDEO AUDIT</button>
+            <button onclick="switchTab('dashboard')" id="btn-dashboard" class="tab-btn pb-4 text-sm font-semibold text-slate-500 hover:text-slate-300 tracking-wide whitespace-nowrap transition-colors">MACRO DASHBOARD</button>
+            <button onclick="switchTab('top10')" id="btn-top10" class="tab-btn pb-4 text-sm font-semibold text-slate-500 hover:text-slate-300 tracking-wide whitespace-nowrap transition-colors">TOP 10 PERFORMERS</button>
+            <button onclick="switchTab('worst10')" id="btn-worst10" class="tab-btn pb-4 text-sm font-semibold text-slate-500 hover:text-slate-300 tracking-wide whitespace-nowrap transition-colors">BOTTOM 10 (DEAD WEIGHT)</button>
+        </div>
+
+        <div id="single-video" class="tab-content active">
+            
+            <div class="mb-6 bg-cardbg p-4 rounded-lg border border-slate-700/50 shadow-md flex items-center gap-4">
+                <label for="videoSelect" class="text-sm font-bold text-slate-400 whitespace-nowrap">Select Video to Audit:</label>
+                <select id="videoSelect" onchange="updateAuditDisplay()" disabled class="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded focus:ring-blue-500 focus:border-blue-500 block p-2.5 opacity-50 cursor-not-allowed">
+                    <option value="">Loading repository data...</option>
+                </select>
+            </div>
+
+            <div class="bg-cardbg rounded-xl border border-slate-700/50 overflow-hidden shadow-2xl">
+                <div class="p-6 border-b border-slate-800 bg-panelbg relative">
+                    <div class="text-blue-500 font-bold text-xs tracking-widest uppercase mb-2">Automated Data Evaluation</div>
+                    <h2 id="audit-title" class="text-2xl font-bold text-white max-w-2xl leading-snug">Awaiting CSV Fetch...</h2>
+                    <div class="flex gap-4 mt-4">
+                        <span id="audit-duration" class="px-3 py-1 bg-slate-800 rounded-full text-xs font-medium text-slate-300">Duration: --</span>
+                        <span id="audit-issue" class="px-3 py-1 bg-slate-800 border border-slate-700 rounded-full text-xs font-medium hidden">Status: --</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 divide-x divide-slate-800 bg-slate-900/50">
+                    <div class="p-6 text-center">
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Views</div>
+                        <div id="audit-views" class="text-2xl font-black text-white">--</div>
+                    </div>
+                    <div class="p-6 text-center">
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Impressions</div>
+                        <div id="audit-impressions" class="text-2xl font-black text-white">--</div>
+                    </div>
+                    <div class="p-6 text-center" id="audit-ctr-container">
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Click-Through Rate</div>
+                        <div id="audit-ctr" class="text-2xl font-black text-blue-400">--</div>
+                    </div>
+                    <div class="p-6 text-center" id="audit-apv-container">
+                        <div class="text-slate-500 text-xs font-bold uppercase mb-1">Average % Viewed</div>
+                        <div id="audit-apv" class="text-2xl font-black text-slate-300">--</div>
+                    </div>
+                </div>
+
+                <div class="p-8">
+                    <h3 class="text-white font-bold text-lg mb-4 flex items-center gap-2">Diagnostic Breakdown</h3>
+                    
+                    <div class="space-y-6">
+                        <div class="bg-panelbg border border-slate-700/50 rounded p-5 border-l-4 border-l-blue-500">
+                            <h4 class="text-white font-semibold text-sm mb-2">Packaging Evaluation (CTR vs Impressions)</h4>
+                            <p id="audit-setup" class="text-slate-400 text-sm leading-relaxed">--</p>
+                        </div>
+                        
+                        <div class="bg-panelbg border border-slate-700/50 rounded p-5 border-l-4 border-l-red-500">
+                            <h4 class="text-white font-semibold text-sm mb-2">Content Retention (APV Analysis)</h4>
+                            <p id="audit-execution" class="text-slate-400 text-sm leading-relaxed">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboard" class="tab-content"><div class="p-6 bg-cardbg rounded border border-slate-700"><p class="text-slate-400">Dashboard UI remains unchanged from previous version.</p></div></div>
+        <div id="top10" class="tab-content"><div class="p-6 bg-cardbg rounded border border-slate-700"><p class="text-slate-400">Top 10 UI remains unchanged from previous version.</p></div></div>
+        <div id="worst10" class="tab-content"><div class="p-6 bg-cardbg rounded border border-slate-700"><p class="text-slate-400">Bottom 10 UI remains unchanged from previous version.</p></div></div>
+
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active', 'text-blue-500');
+                el.classList.add('text-slate-500');
+            });
+            document.getElementById(tabId).classList.add('active');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.add('active', 'text-blue-500');
+            activeBtn.classList.remove('text-slate-500');
+        }
+
+        // ==========================================
+        // DYNAMIC CSV FETCH & PARSE LOGIC
+        // ==========================================
+        
+        let globalVideoData = {}; // Will hold all parsed videos
+
+        // YOU MUST REPLACE THIS URL WITH YOUR ACTUAL RAW GITHUB CSV LINK
+        const CSV_URL = "https://raw.githubusercontent.com/journohindi/Test-HND/refs/heads/main/Table%20data.csv";
+
+        function initializeData() {
+            if (CSV_URL === "https://raw.githubusercontent.com/journohindi/Test-HND/refs/heads/main/Table%20data.csv") {
+                document.getElementById('loading-status').className = "text-xs font-bold text-red-400 bg-red-900/30 px-3 py-1 rounded";
+                document.getElementById('loading-status').innerText = "ERROR: Raw URL Not Provided in Script";
+                document.getElementById('audit-title').innerText = "System Failure: Update CSV_URL line 286";
+                return;
+            }
+
+            Papa.parse(CSV_URL, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processCSVData(results.data);
+                },
+                error: function(err) {
+                    document.getElementById('loading-status').innerText = "Fetch Failed. Check GitHub URL or CORS.";
+                }
+            });
+        }
+
+        function processCSVData(dataArray) {
+            const selectEl = document.getElementById('videoSelect');
+            selectEl.innerHTML = '<option value="">Select a video...</option>';
+            
+            // Sort by views descending to put best videos at the top of the dropdown
+            dataArray.sort((a, b) => (parseFloat(b.Views) || 0) - (parseFloat(a.Views) || 0));
+
+            dataArray.forEach((row, index) => {
+                if(row.Content === 'Total' || !row['Video title']) return;
+
+                const videoId = 'vid_' + index;
+                const views = parseFloat(row.Views) || 0;
+                const impressions = parseFloat(row.Impressions) || 0;
+                const ctr = parseFloat(row['Impressions click-through rate (%)']) || 0;
+                const apv = parseFloat(row['Average percentage viewed (%)']) || 0;
+                
+                // Auto-generate algorithmic diagnostics based on objective data thresholds
+                let setupDiagnostic = "";
+                let executionDiagnostic = "";
+                let isCritical = false;
+                let issueLabel = "Normal";
+                let issueColor = "text-slate-300";
+
+                if (impressions > 1000 && ctr < 2.0) {
+                    setupDiagnostic = `CRITICAL FAILURE: Generated ${impressions.toLocaleString()} impressions but CTR is only ${ctr}%. The packaging (Thumbnail/Title) is being aggressively rejected by the audience. Stop this format or radically change metadata.`;
+                    isCritical = true;
+                    issueLabel = "Dead Packaging";
+                    issueColor = "text-red-400 bg-red-900/30 border-red-800/50";
+                } else if (ctr > 5.0) {
+                    setupDiagnostic = `SUCCESS: Excellent click-through rate of ${ctr}%. Your metadata structure successfully baited algorithmic curiosity.`;
+                } else {
+                    setupDiagnostic = `Baseline performance. CTR is ${ctr}%. Acceptable, but room for packaging optimization.`;
+                }
+
+                if (ctr > 4.0 && apv < 30) {
+                    executionDiagnostic = `RETENTION COLLAPSE: Despite a strong CTR, APV is only ${apv}%. The video fails to deliver on the thumbnail's promise quickly enough. You are losing the audience in the opening sequence. Re-edit future hooks immediately.`;
+                    isCritical = true;
+                    issueLabel = "Hook Failure / Clickbait";
+                    issueColor = "text-orange-400 bg-orange-900/30 border-orange-800/50";
+                } else if (apv > 60) {
+                    executionDiagnostic = `STRONG RETENTION: APV of ${apv}% indicates highly successful pacing and content delivery. Scale this specific narrative structure.`;
+                    issueLabel = "High Yield Content";
+                    issueColor = "text-emerald-400 bg-emerald-900/30 border-emerald-800/50";
+                } else {
+                    executionDiagnostic = `Mediocre retention (${apv}%). The video sustains some interest but suffers from pacing drag. Audit the retention graph to find specific drop-off points.`;
+                }
+
+                globalVideoData[videoId] = {
+                    title: row['Video title'],
+                    duration: row.Duration || "Unknown",
+                    views: views.toLocaleString(),
+                    impressions: impressions.toLocaleString(),
+                    ctr: ctr.toFixed(2) + "%",
+                    apv: apv.toFixed(2) + "%",
+                    issueTag: issueLabel,
+                    issueColor: issueColor,
+                    setup: setupDiagnostic,
+                    execution: executionDiagnostic,
+                    rawCtr: ctr,
+                    rawApv: apv
+                };
+
+                const option = document.createElement('option');
+                option.value = videoId;
+                option.textContent = `[${views.toLocaleString()} Views] - ${row['Video title'].substring(0, 80)}...`;
+                selectEl.appendChild(option);
+            });
+
+            // Enable UI
+            selectEl.disabled = false;
+            selectEl.classList.remove('opacity-50', 'cursor-not-allowed');
+            document.getElementById('loading-status').innerText = "Data Synced: " + Object.keys(globalVideoData).length + " Videos";
+            document.getElementById('loading-status').className = "text-xs font-bold text-emerald-400 bg-emerald-900/30 px-3 py-1 rounded";
+        }
+
+        function updateAuditDisplay() {
+            const selectedId = document.getElementById('videoSelect').value;
+            if(!selectedId || !globalVideoData[selectedId]) return;
+
+            const data = globalVideoData[selectedId];
+
+            document.getElementById('audit-title').textContent = data.title;
+            document.getElementById('audit-duration').textContent = "Duration: " + data.duration;
+            document.getElementById('audit-views').textContent = data.views;
+            document.getElementById('audit-impressions').textContent = data.impressions;
+            document.getElementById('audit-ctr').textContent = data.ctr;
+            document.getElementById('audit-apv').textContent = data.apv;
+
+            const issueTag = document.getElementById('audit-issue');
+            issueTag.classList.remove('hidden');
+            issueTag.className = `px-3 py-1 border rounded-full text-xs font-medium ${data.issueColor}`;
+            issueTag.textContent = "Status: " + data.issueTag;
+
+            // Conditional Formatting for Stats
+            document.getElementById('audit-ctr-container').className = data.rawCtr < 2.0 ? "p-6 text-center bg-red-900/20" : "p-6 text-center";
+            document.getElementById('audit-apv-container').className = data.rawApv < 30 ? "p-6 text-center bg-red-900/20" : "p-6 text-center bg-slate-800/20";
+
+            document.getElementById('audit-setup').textContent = data.setup;
+            document.getElementById('audit-execution').textContent = data.execution;
+        }
+
+        // Run fetch on load
+        window.onload = initializeData;
+
+    </script>
+</body>
+</html>
